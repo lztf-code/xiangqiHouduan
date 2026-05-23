@@ -24,6 +24,10 @@ io.on('connection', (socket) => {
   // --- Set nickname ---
   socket.on('set-nickname', (nickname: string) => {
     const name = (nickname || '').trim().slice(0, 20) || '棋手';
+    if (roomManager.checkNicknameInAllRooms(socket.id, name)) {
+      socket.emit('error', `昵称 "${name}" 已被其他房间中的用户使用，请使用不同的昵称`);
+      return;
+    }
     roomManager.setNickname(socket.id, name);
     // Send current room list after setting nickname
     socket.emit('room-list', roomManager.getRoomList());

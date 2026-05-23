@@ -23,6 +23,15 @@ export class RoomManager {
     return room;
   }
 
+  checkNicknameInAllRooms(socketId: string, nickname: string): boolean {
+    for (const room of this.rooms.values()) {
+      if (room.getAllUsers().some(u => u.nickname === nickname && u.id !== socketId)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   joinRoom(socketId: string, roomId: string, password?: string): { room: GameRoom; error?: string } | null {
     if (this.userRooms.has(socketId)) return null;
     const room = this.rooms.get(roomId);
@@ -30,7 +39,12 @@ export class RoomManager {
     if (room.type === 'private' && room.password && room.password !== password) {
       return { room, error: '密码错误' };
     }
-    const user: User = { id: socketId, nickname: this.getNickname(socketId), role: 'spectator' };
+    const nickname = this.getNickname(socketId);
+    const allUsers = room.getAllUsers();
+    if (allUsers.some(u => u.nickname === nickname)) {
+      return { room, error: `房间中已有用户 "${nickname}"，请使用不同的昵称` };
+    }
+    const user: User = { id: socketId, nickname, role: 'spectator' };
     room.addSpectator(user);
     this.userRooms.set(socketId, roomId);
     return { room };
