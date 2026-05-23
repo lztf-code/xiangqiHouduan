@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: chess-games-server
+    env: node
+    plan: starter
+    rootDir: chess-games/server
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
