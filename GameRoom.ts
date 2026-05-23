@@ -39,172 +39,6 @@ function createInternationalBoard(): IBoard {
 let idCounter = 0;
 function genId(): string { return Date.now().toString(36) + (++idCounter).toString(36); }
 
-function isKingInCheckInternational(board: IBoard, color: 'white' | 'black'): boolean {
-  let kingRow = -1, kingCol = -1;
-  for (let r = 0; r < 8; r++) {
-    for (let c = 0; c < 8; c++) {
-      const p = board[r][c];
-      if (p?.type === 'king' && p.color === color) {
-        kingRow = r;
-        kingCol = c;
-        break;
-      }
-    }
-    if (kingRow !== -1) break;
-  }
-  if (kingRow === -1) return true;
-
-  const opponentColor = color === 'white' ? 'black' : 'white';
-  for (let r = 0; r < 8; r++) {
-    for (let c = 0; c < 8; c++) {
-      const p = board[r][c];
-      if (p && p.color === opponentColor) {
-        const dr = kingRow - r;
-        const dc = kingCol - c;
-        let valid = false;
-        switch (p.type) {
-          case 'king': valid = Math.abs(dr) + Math.abs(dc) === 1; break;
-          case 'queen': valid = (dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc)) && !isBlockedBishopRook(board, r, c, kingRow, kingCol); break;
-          case 'rook': valid = (dr === 0 || dc === 0) && !isBlockedRook(board, r, c, kingRow, kingCol); break;
-          case 'bishop': valid = Math.abs(dr) === Math.abs(dc) && !isBlockedBishop(board, r, c, kingRow, kingCol); break;
-          case 'knight': valid = (Math.abs(dr) === 2 && Math.abs(dc) === 1) || (Math.abs(dr) === 1 && Math.abs(dc) === 2); break;
-          case 'pawn': {
-            const pawnDir = p.color === 'white' ? -1 : 1;
-            valid = dr === pawnDir && Math.abs(dc) === 1;
-            break;
-          }
-        }
-        if (valid) return true;
-      }
-    }
-  }
-  return false;
-}
-
-function isBlockedRook(board: IBoard, r1: number, c1: number, r2: number, c2: number): boolean {
-  if (r1 !== r2 && c1 !== c2) return true;
-  const dr = r1 === r2 ? 0 : (r2 > r1 ? 1 : -1);
-  const dc = c1 === c2 ? 0 : (c2 > c1 ? 1 : -1);
-  let r = r1 + dr, c = c1 + dc;
-  while (r !== r2 || c !== c2) {
-    if (board[r][c]) return true;
-    r += dr; c += dc;
-  }
-  return false;
-}
-
-function isBlockedBishop(board: IBoard, r1: number, c1: number, r2: number, c2: number): boolean {
-  const dr = r2 > r1 ? 1 : -1;
-  const dc = c2 > c1 ? 1 : -1;
-  let r = r1 + dr, c = c1 + dc;
-  while (r !== r2 && c !== c2) {
-    if (board[r][c]) return true;
-    r += dr; c += dc;
-  }
-  return false;
-}
-
-function isBlockedBishopRook(board: IBoard, r1: number, c1: number, r2: number, c2: number): boolean {
-  if (r1 === r2) return isBlockedRook(board, r1, c1, r2, c2);
-  if (c1 === c2) return isBlockedRook(board, r1, c1, r2, c2);
-  return isBlockedBishop(board, r1, c1, r2, c2);
-}
-
-function kingsFacingChinese(board: CBoard): boolean {
-  let redKing: [number, number] | null = null;
-  let blackKing: [number, number] | null = null;
-  for (let r = 0; r < 10; r++) {
-    for (let c = 0; c < 9; c++) {
-      const p = board[r][c];
-      if (p?.type === 'king') {
-        if (p.color === 'red') redKing = [r, c];
-        else blackKing = [r, c];
-      }
-    }
-  }
-  if (!redKing || !blackKing) return false;
-  if (redKing[1] !== blackKing[1]) return false;
-  const minR = Math.min(redKing[0], blackKing[0]);
-  const maxR = Math.max(redKing[0], blackKing[0]);
-  for (let r = minR + 1; r < maxR; r++) {
-    if (board[r][redKing[1]]) return false;
-  }
-  return true;
-}
-
-function isInCheckChinese(board: CBoard, color: 'red' | 'black'): boolean {
-  let kingRow = -1, kingCol = -1;
-  for (let r = 0; r < 10; r++) {
-    for (let c = 0; c < 9; c++) {
-      const p = board[r][c];
-      if (p?.type === 'king' && p.color === color) {
-        kingRow = r;
-        kingCol = c;
-        break;
-      }
-    }
-    if (kingRow !== -1) break;
-  }
-  if (kingRow === -1) return true;
-
-  const opponentColor = color === 'red' ? 'black' : 'red';
-  for (let r = 0; r < 10; r++) {
-    for (let c = 0; c < 9; c++) {
-      const p = board[r][c];
-      if (p && p.color === opponentColor) {
-        const dr = kingRow - r;
-        const dc = kingCol - c;
-        let valid = false;
-        switch (p.type) {
-          case 'king': valid = Math.abs(dr) + Math.abs(dc) === 1; break;
-          case 'rook': {
-            if (dr === 0 || dc === 0) {
-              let blocked = false;
-              const minR = Math.min(r, kingRow), maxR = Math.max(r, kingRow);
-              const minC = Math.min(c, kingCol), maxC = Math.max(c, kingCol);
-              for (let rr = minR + 1; rr < maxR; rr++) {
-                for (let cc = minC + 1; cc < maxC; cc++) {
-                  if (board[rr][cc]) blocked = true;
-                }
-              }
-              valid = !blocked && (dr === 0 || dc === 0);
-            }
-            break;
-          }
-          case 'horse': valid = (Math.abs(dr) === 2 && Math.abs(dc) === 1) || (Math.abs(dr) === 1 && Math.abs(dc) === 2); break;
-          case 'elephant': valid = Math.abs(dr) === 2 && Math.abs(dc) === 2; break;
-          case 'advisor': valid = Math.abs(dr) === 1 && Math.abs(dc) === 1; break;
-          case 'cannon': {
-            if (dr === 0 || dc === 0) {
-              let count = 0;
-              const minR = Math.min(r, kingRow), maxR = Math.max(r, kingRow);
-              const minC = Math.min(c, kingCol), maxC = Math.max(c, kingCol);
-              for (let rr = minR + 1; rr < maxR; rr++) {
-                for (let cc = minC + 1; cc < maxC; cc++) {
-                  if (board[rr][cc]) count++;
-                }
-              }
-              valid = count === 1;
-            }
-            break;
-          }
-          case 'pawn': {
-            if (Math.abs(dr) + Math.abs(dc) !== 1) break;
-            if (p.color === 'red') {
-              valid = dr < 0 && (kingRow >= 5 || dc === 0);
-            } else {
-              valid = dr > 0 && (kingRow <= 4 || dc === 0);
-            }
-            break;
-          }
-        }
-        if (valid) return true;
-      }
-    }
-  }
-  return false;
-}
-
 export class GameRoom {
   id: string;
   name: string;
@@ -381,18 +215,26 @@ export class GameRoom {
   }
 
   makeMove(userId: string, move: any): { valid: boolean; board?: any; currentTurn?: string; moveStr?: string; gameOver?: boolean; winner?: string } {
+    console.log('🎮 makeMove called:', { userId, move });
+    
     if (this.status !== 'playing') return { valid: false };
     const isPlayer = (this.gameType === 'chinese')
       ? (this.currentTurn === 'red' && this.redPlayer?.id === userId) ||
       (this.currentTurn === 'black' && this.blackPlayer?.id === userId)
       : (this.currentTurn === 'white' && this.redPlayer?.id === userId) ||
       (this.currentTurn === 'black' && this.blackPlayer?.id === userId);
-    if (!isPlayer) return { valid: false };
-
-    const piece = this.board[move.fromRow]?.[move.fromCol];
-    if (!piece) return { valid: false };
+    if (!isPlayer) {
+      console.log('❌ Not a player:', { userId, redPlayer: this.redPlayer?.id, blackPlayer: this.blackPlayer?.id, currentTurn: this.currentTurn });
+      return { valid: false };
+    }
 
     const newBoard = cloneB(this.board);
+    const piece = newBoard[move.fromRow]?.[move.fromCol];
+    if (!piece) {
+      console.log('❌ No piece at from position');
+      return { valid: false };
+    }
+    
     newBoard[move.toRow][move.toCol] = { ...piece, hasMoved: true };
     newBoard[move.fromRow][move.fromCol] = null;
 
@@ -411,13 +253,6 @@ export class GameRoom {
       newBoard[move.toRow][move.toCol] = { type: move.promotion, color: piece.color, hasMoved: true };
     }
 
-    if (this.gameType === 'chinese') {
-      if (kingsFacingChinese(newBoard)) return { valid: false };
-      if (isInCheckChinese(newBoard, piece.color)) return { valid: false };
-    } else {
-      if (isKingInCheckInternational(newBoard, piece.color as 'white' | 'black')) return { valid: false };
-    }
-
     this.board = newBoard;
     const moveStr = `${piece.type !== 'pawn' ? piece.type[0].toUpperCase() : ''}${String.fromCharCode(97 + move.fromCol)}${this.gameType === 'chinese' ? 10 - move.fromRow : 8 - move.fromRow}-${String.fromCharCode(97 + move.toCol)}${this.gameType === 'chinese' ? 10 - move.toRow : 8 - move.toRow}`;
     this.moveHistory.push(moveStr);
@@ -428,6 +263,7 @@ export class GameRoom {
       this.currentTurn = this.currentTurn === 'white' ? 'black' : 'white';
     }
 
+    console.log('✅ Move valid, new turn:', this.currentTurn);
     return { valid: true, board: this.board, currentTurn: this.currentTurn, moveStr };
   }
 
@@ -440,7 +276,6 @@ export class GameRoom {
   }
 
   startNextChallenger(winnerSide?: string): { user: User; side: 'red' | 'black' } | null {
-    // After game finishes, winner stays, loser replaced by next challenger
     if (this.challengeQueue.length === 0) {
       this.status = 'waiting';
       return null;
@@ -449,21 +284,18 @@ export class GameRoom {
     const user = this.getUserById(next.userId);
     if (!user) return this.startNextChallenger(winnerSide);
 
-    // Determine which side to replace (the loser's side)
-    let replaceSide: 'red' | 'black' = 'black'; // default
+    let replaceSide: 'red' | 'black' = 'black';
     if (winnerSide === 'red' || winnerSide === 'white') {
-      replaceSide = 'black'; // red/white won, replace black
+      replaceSide = 'black';
     } else if (winnerSide === 'black') {
-      replaceSide = 'red'; // black won, replace red
+      replaceSide = 'red';
     }
 
-    // Move the loser to spectators
     const loser = replaceSide === 'red' ? this.redPlayer : this.blackPlayer;
     if (loser) {
       this.spectators.push({ ...loser, role: 'spectator' });
     }
 
-    // Place challenger on the loser's side
     this.spectators = this.spectators.filter(s => s.id !== user.id);
     if (replaceSide === 'red') {
       this.redPlayer = { ...user, role: 'player' };
